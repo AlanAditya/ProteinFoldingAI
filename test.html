@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acidity & Basicity Mastery | Organic Chemistry</title>
+    <!-- Tailwind CSS for sleek styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SortableJS for superior drag & drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- SmilesDrawer for chemical structures -->
+    <script src="https://unpkg.com/smiles-drawer@1.0.10/dist/smiles-drawer.min.js"></script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .molecule-card {
+            transition: all 0.2s ease;
+        }
+
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #e0f2fe;
+        }
+
+        .sortable-drag {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: scale(1.02);
+            cursor: grabbing !important;
+        }
+
+        canvas {
+            pointer-events: none;
+            /* Prevent dragging the canvas itself */
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 pb-20">
+
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">
+                ChemRank
+            </h1>
+            <div class="text-sm font-medium text-slate-500">
+                Acidity & Basicity Ultimate Quiz (50 Questions)
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 mt-8" id="app-container">
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8">
+            <h2 class="text-xl font-semibold mb-2">Instructions</h2>
+            <p class="text-slate-600">
+                Below is the comprehensive test encompassing all 50 chemical structures derived from your notes.
+                <strong>Drag and drop</strong> the molecule cards to order them appropriately (e.g., from Weakest to
+                Strongest).
+                Once ordered, click "Verify Sequence" to check your understanding!
+            </p>
+        </div>
+
+        <div id="quiz-container" class="space-y-8">
+            <!-- Quizzes dynamically injected here -->
+        </div>
+
+    </main>
+
+    <!-- LOAD THE EXTERNAL DATA -->
+    <script src="quiz_data.js"></script>
+
+    <script>
+        // Shuffle helper
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        const container = document.getElementById('quiz-container');
+
+        // quizData is sourced globally from quiz_data.js
+        if (typeof window.quizData === 'undefined') {
+            container.innerHTML = '<div class="p-6 bg-red-100 text-red-700 rounded-xl">Error: quiz_data.js could not be loaded!</div>';
+        } else {
+            // Render Quizzes
+            window.quizData.forEach((q, index) => {
+
+                // Randomize items initially so the user has to reorder
+                const shuffledItems = shuffle([...q.items]);
+
+                const quizHTML = `
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200" id="card-${q.id}">
+                        <h3 class="text-lg font-bold text-slate-800 mb-1">${q.title}</h3>
+                        <p class="text-sm text-slate-500 mb-5">${q.description}</p>
+                        
+                        <div id="list-${q.id}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 min-h-[150px]">
+                            ${shuffledItems.map(item => `
+                                <div class="molecule-card bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center cursor-grab hover:border-brand-500 hover:bg-brand-50" data-id="${item.id}" data-rank="${item.rank}">
+                                    <div class="w-full h-32 flex items-center justify-center mb-3">
+                                        <canvas data-smiles="${item.smiles}" width="150" height="150"></canvas>
+                                    </div>
+                                    <div class="text-sm font-semibold text-center text-slate-700">${item.name}</div>
+                                    <div class="text-xs text-slate-400 mt-1 cursor-grab">⋮⋮ Drag Menu</div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <button onclick="checkAnswer('${q.id}')" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-colors duration-200 flex items-center gap-2">
+                                Verify Sequence
+                            </button>
+                            <div id="feedback-${q.id}" class="hidden font-medium text-sm px-4 py-2 rounded-lg"></div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', quizHTML);
+
+                // Initialize SortableJS for this quiz
+                new Sortable(document.getElementById(`list-${q.id}`), {
+                    animation: 250,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    easing: "cubic-bezier(1, 0, 0, 1)"
+                });
+            });
+
+            // Initialize SmilesDrawer Options
+            const smilesOptions = {
+                width: 150,
+                height: 150,
+                bondThickness: 2,
+                themes: {
+                    light: { C: '#334155', O: '#ef4444', N: '#3b82f6', F: '#10b981', Cl: '#10b981', Br: '#a855f7', I: '#f59e0b', BACKGROUND: 'transparent' }
+                }
+            };
+            const drawer = new SmilesDrawer.Drawer(smilesOptions);
+
+            // Draw all canvas elements with data-smiles
+            document.querySelectorAll('canvas[data-smiles]').forEach(canvas => {
+                const smiles = canvas.getAttribute('data-smiles');
+                if (smiles) {
+                    SmilesDrawer.parse(smiles, function (tree) {
+                        drawer.draw(tree, canvas, 'light', false);
+                    });
+                }
+            });
+
+            // Verification Logic
+            window.checkAnswer = function (quizId) {
+                const list = document.getElementById(`list-${quizId}`);
+                const items = list.querySelectorAll('.molecule-card');
+                const feedback = document.getElementById(`feedback-${quizId}`);
+
+                let isCorrect = true;
+                let expectedRank = 1;
+
+                items.forEach(item => {
+                    if (parseInt(item.getAttribute('data-rank')) !== expectedRank) {
+                        isCorrect = false;
+                    }
+                    expectedRank++;
+                });
+
+                feedback.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-700', 'bg-red-100', 'text-red-700');
+
+                if (isCorrect) {
+                    feedback.innerHTML = `<span>🎉</span> Perfect sequence!`;
+                    feedback.classList.add('bg-emerald-100', 'text-emerald-700');
+
+                    const card = document.getElementById(`card-${quizId}`);
+                    card.classList.remove('border-slate-200');
+                    card.classList.add('border-emerald-400', 'ring-4', 'ring-emerald-50');
+                } else {
+                    feedback.innerHTML = `<span>🤔</span> Not quite right. Rethink the inductive/resonance effects!`;
+                    feedback.classList.add('bg-red-100', 'text-red-700');
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
