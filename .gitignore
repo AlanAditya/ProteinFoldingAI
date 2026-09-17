@@ -1,1 +1,12 @@
 alphafold-decoded/
+
+# Large binaries excluded to keep repo pushable (backed up separately)
+params/
+data/MNIST/
+output/
+PDFS and Content/
+Display.ipynb
+Manim/media/
+Manim/amino_acid_folding.mp4
+Images/*.mp4
+Images/Folding.gif
